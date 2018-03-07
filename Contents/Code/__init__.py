@@ -5,6 +5,7 @@ from urllib import urlencode
 from updater import Updater
 from DumbTools import DumbKeyboard, DumbPrefs
 TWITCH_API_BASE = 'https://api.twitch.tv/kraken'
+TWITCH_API_NEW_BASE = 'https://id.twitch.tv'
 TWITCH_API_MIME_TYPE = "application/vnd.twitchtv.v{version}+json".format(version=3)
 TWITCH_CLIENT_ID = 'r797t9e3qhgxayiisuqdxxkh5tj7mlz'
 PAGE_LIMIT = 20
@@ -438,25 +439,14 @@ def SearchGames(query, apiurl=None, **kwargs):
 def Authorize(**kwargs):
     """Auth involves sending the user to a twitch URL where they go through the auth process,
     which results in a token string. It doesn't seem reasonable to do this entire process in a plex
-    client. So we use a URL shortener to give the user an address to go to in a web browser
+    client. So we give the user an address to go to in a web browser
     to complete the process, then enter the token they receive into the channels preferences."""
-    scopes = ['user_read']
-    url = add_params(TWITCH_API_BASE + '/oauth2/authorize', {
+    scopes = ['user:read:email']
+    url = add_params(TWITCH_API_NEW_BASE + '/oauth2/authorize', {
         'client_id': TWITCH_CLIENT_ID,
         'response_type': 'token',
         'redirect_uri': 'http://localhost',
         'scope': '+'.join(scopes),
     })
     Log.Debug('TWITCH: auth url: {}'.format(url))
-    url_shortener = 'http://shoutkey.com/new?url=' + String.Quote(url)
-    data = HTTP.Request(url_shortener)
-    match = re.search(r'<a href="((https?:\/\/shoutkey.com)\/([^"]+))">\3<\/a>', data.content)
-    Log.Debug('url shortener match: {}'.format(match))
-    if match is None:
-        Log.Debug('no match.')
-        return error_message('url shortener', 'url shortener error')
-    shortened_url = match.groups()[0]
-    Log.Debug('TWITCH: shortened url: {}'.format(shortened_url))
-    # Present the URL with a Directory object that doesn't go anywhere.
-    return ObjectContainer(objects=[DirectoryObject(key=Callback(error_message, error='authorize', message='...'),
-                                                    title=shortened_url)])
+    return ObjectContainer(message=url)
