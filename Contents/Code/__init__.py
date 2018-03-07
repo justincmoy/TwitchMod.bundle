@@ -37,21 +37,28 @@ def Start():
 def MainMenu(**kwargs):
     oc = ObjectContainer(no_cache=True)
     Updater(PREFIX + '/updater', oc)
-    oc.add(DirectoryObject(key=Callback(FeaturedStreamsList),
-                           title=unicode(L('featured_streams')), thumb=ICONS['channels']))
-    oc.add(DirectoryObject(key=Callback(TopStreamsList),
-                           title=unicode(L('top_streams')), thumb=ICONS['channels']))
-    oc.add(DirectoryObject(key=Callback(TopGamesList),
-                           title=unicode(L('games')), thumb=ICONS['games'],
-                           summary=unicode(L('browse_summary'))))
-    oc.add(DirectoryObject(key=Callback(SearchMenu),
-                           title=unicode(L('search')), thumb=ICONS['search'],
-                           summary=unicode(L('search_prompt'))))
-    oc.add(DirectoryObject(key=Callback(FollowedChannelsList),
-                           title=unicode((L('followed_channels'))), thumb=ICONS['following']))
-    if Prefs['favourite_games']:
-        oc.add(DirectoryObject(key=Callback(FavGames),
-                               title=unicode((L('favourite_games'))), thumb=ICONS['following']))
+    main_layout = Prefs['main_layout'].split(',')
+    for item in main_layout:
+        if item == 'featured':
+            oc.add(DirectoryObject(key=Callback(FeaturedStreamsList),
+                                   title=unicode(L('featured_streams')), thumb=ICONS['channels']))
+        elif item == 'top':
+            oc.add(DirectoryObject(key=Callback(TopStreamsList),
+                                   title=unicode(L('top_streams')), thumb=ICONS['channels']))
+        elif item == 'games':
+            oc.add(DirectoryObject(key=Callback(TopGamesList),
+                                   title=unicode(L('games')), thumb=ICONS['games'],
+                                   summary=unicode(L('browse_summary'))))
+        elif item == 'search':
+            oc.add(DirectoryObject(key=Callback(SearchMenu),
+                                   title=unicode(L('search')), thumb=ICONS['search'],
+                                   summary=unicode(L('search_prompt'))))
+        elif item == 'followed':
+            oc.add(DirectoryObject(key=Callback(FollowedChannelsList),
+                                   title=unicode((L('followed_channels'))), thumb=ICONS['following']))
+        elif item == 'favorite_games' and Prefs['favourite_games']:
+            oc.add(DirectoryObject(key=Callback(FavGames),
+                                   title=unicode((L('favourite_games'))), thumb=ICONS['following']))
     if Client.Product in DumbPrefs.clients:
         DumbPrefs(PREFIX, oc, title=unicode(L('Preferences')), thumb=ICONS['settings'])
     else:
