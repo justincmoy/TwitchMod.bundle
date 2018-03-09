@@ -36,7 +36,7 @@ def Start():
 @handler(PREFIX, NAME, ICON, ART)
 def MainMenu(**kwargs):
     oc = ObjectContainer(no_cache=True)
-    Updater(PREFIX + '/updater', oc)
+    # Updater(PREFIX + '/updater', oc)
     main_layout = Prefs['main_layout'].split(',')
     for item in main_layout:
         if item == 'featured':
@@ -54,8 +54,12 @@ def MainMenu(**kwargs):
                                    title=unicode(L('search')), thumb=ICONS['search'],
                                    summary=unicode(L('search_prompt'))))
         elif item == 'followed':
-            oc.add(DirectoryObject(key=Callback(FollowedChannelsList),
-                                   title=unicode((L('followed_channels'))), thumb=ICONS['following']))
+            if Prefs['display_followed_main_menu']:
+                from lib_follows import get_follows
+                get_follows(oc)
+            else:
+                oc.add(DirectoryObject(key=Callback(FollowedChannelsList),
+                                       title=unicode((L('followed_channels'))), thumb=ICONS['following']))
         elif item == 'favorite_games' and Prefs['favourite_games']:
             oc.add(DirectoryObject(key=Callback(FavGames),
                                    title=unicode((L('favourite_games'))), thumb=ICONS['following']))
@@ -146,16 +150,30 @@ def get_streams(channels, cache_time=0):
 def stream_strings(stream, title_layout=None):
     """Returns a title and summary string for a twitch stream object."""
     title_layout = title_layout if title_layout is not None else Prefs['title_layout']
-    status = xstr(stream['channel'].get('status', '?'))
-    start_time = Datetime.ParseDate(stream['created_at'])
-    quality = "{}p{:.0f}".format(stream['video_height'], stream['average_fps'])
-    viewers_string = "{:,} {}".format(int(stream['viewers']), L('viewers'))
-    title_elements = {'name': stream['channel']['display_name'],
-                      'views': viewers_string,
-                      'status': status,
-                      'game': xstr(stream['channel'].get('game', '?')),
-                      'time': time_since(start_time),
-                      'quality': quality}
+
+    # api v5 (deprecated)
+    if 'channel' in stream:
+        status = xstr(stream['channel'].get('status', '?'))
+        start_time = Datetime.ParseDate(stream['created_at'])
+        quality = "{}p{:.0f}".format(stream['video_height'], stream['average_fps'])
+        viewers_string = "{:,} {}".format(int(stream['viewers']), L('viewers'))
+        title_elements = {'name': stream['channel']['display_name'],
+                          'views': viewers_string,
+                          'status': status,
+                          'game': xstr(stream['channel'].get('game', '?')),
+                          'time': time_since(start_time),
+                          'quality': quality}
+    else:
+        status = stream['type']
+        start_time = Datetime.ParseDate(stream['started_at'])
+        quality = ''
+        viewers_string = "{:,} {}".format(int(stream['viewer_count']), L('viewers'))
+        title_elements = {'name': stream['title'],
+                          'views': viewers_string,
+                          'status': status,
+                          'game': stream['game']['name'],
+                          'time': time_since(start_time),
+                          'quality': quality}
     return (title_str(title_layout).format(**title_elements),
             "{}\nStarted {}\n{}\n\n{}".format(viewers_string, time_since(start_time, pretty=True),
                                               quality, status))
@@ -179,13 +197,21 @@ def stream_dir(stream, title_layout=None):
 
 
 def stream_vid(stream, title_layout=None):
-    """Returnss a VideoClipObject from a twitch stream object"""
+    """Returns a VideoClipObject from a twitch stream object"""
     title, summary = stream_strings(stream, title_layout)
+    if 'channel' in stream:
+        return VideoClipObject(
+            url=SharedCodeService.shared.service_url(stream['channel']['url'], Prefs['access_token']),
+            title=unicode(title), summary=unicode(summary),
+            thumb=Resource.ContentsOfURLWithFallback(
+                get_preview_image(stream['preview']['medium']), fallback=ICONS['videos']))
+
     return VideoClipObject(
-        url=SharedCodeService.shared.service_url(stream['channel']['url'], Prefs['access_token']),
+        url=SharedCodeService.shared.service_url('https://www.twitch.tv/{}'.format(stream['user']['display_name'].lower()), Prefs['access_token']),
         title=unicode(title), summary=unicode(summary),
         thumb=Resource.ContentsOfURLWithFallback(
-            get_preview_image(stream['preview']['medium']), fallback=ICONS['videos']))
+            stream['thumbnail_url'].format(width=320, height=180), fallback=ICONS['videos'])
+    )
 
 
 def channel_dir(channel, offline=False):
@@ -272,6 +298,7 @@ def FollowedChannelsList(apiurl=None, limit=100, **kwargs):
 def ChannelVodsList(name=None, apiurl=None, broadcasts=True, limit=PAGE_LIMIT, **kwargs):
     """Returns videoClipObjects for ``channel``. ignore vods that aren't v type."""
     oc = ObjectContainer(title2=L('past_broadcasts') if broadcasts else L('highlights'))
+
     try:
         videos = (api_request(apiurl) if apiurl is not None else
                   api_request('/channels/{}/videos'.format(name),
@@ -285,17 +312,16 @@ def ChannelVodsList(name=None, apiurl=None, broadcasts=True, limit=PAGE_LIMIT, *
         vod_title = video['title'] if video['title'] else L('untitled_broadcast')
         title = "{} - {}".format(vod_date.strftime('%a %b %d, %Y'), vod_title)
         oc.add(VideoClipObject(url=SharedCodeService.shared.service_url(url, Prefs['access_token']),
-                               title=unicode(title),
-                               summary=unicode(video['description']),
-                               duration=min(int(video['length']) * 1000, MAXINT),
-                               thumb=Resource.ContentsOfURLWithFallback(video['preview'],
-                                                                        fallback=ICONS['videos'])))
+           title=unicode(title),
+           summary=unicode(video['description']),
+           # duration=min(int(video['length']) * 1000, MAXINT),
+           thumb=Resource.ContentsOfURLWithFallback(video['preview'],
+                                                    fallback=ICONS['videos'])))
     if len(oc) + ignored >= limit:
         oc.add(NextPageObject(key=Callback(ChannelVodsList, apiurl=videos['_links']['next'],
                                            broadcasts=broadcasts, limit=limit),
                               title=unicode(L('more')), thumb=ICONS['more']))
     return oc
-
 
 @route(PREFIX + '/topstreams', limit=int)
 def TopStreamsList(apiurl=None, limit=PAGE_LIMIT, **kwargs):

@@ -46,6 +46,12 @@
         "label": "hide_offline",
         "type": "bool",
         "default": "false"
+    },
+    {
+        "id": "display_followed_main_menu",
+        "label": "display_followed_main_menu",
+        "type": "bool",
+        "default": "false"
     }
 
 ]

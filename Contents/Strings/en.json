@@ -38,5 +38,6 @@
     "access_token": "Access Token (optional)",
     "authorize": "Authorize",
     "hide_offline": "Hide Offline Channels",
-    "main_layout": "Main Menu Layout (default: featured,top,games,search,followed,favorite_games)"
+    "main_layout": "Main Menu Layout (default: featured,top,games,search,followed,favorite_games)",
+    "display_followed_main_menu": "Display Followed on Main Menu"
 }
