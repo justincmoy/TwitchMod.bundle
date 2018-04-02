@@ -265,32 +265,8 @@ def FollowedChannelsList(apiurl=None, limit=100, **kwargs):
     2. get 'stream' objects, which contains info about the stream if its live
     """
     oc = ObjectContainer(title2=L('followed_channels'))
-    try:
-        following = (api_request(apiurl) if apiurl is not None else
-                     api_request('/users/{}/follows/channels'.format(Prefs['username']),
-                                 params={'limit': limit, 'sortby': 'last_broadcast',
-                                         'direction': 'desc'}))
-    except APIError:
-        return error_message(oc.title2, L('followed_streams_list_error'))
-    followed_channels = [channel['channel']['name'] for channel in following['follows']]
-    # get a list of stream objects for followed streams so we can add Live status to the title
-    streams = get_streams(followed_channels)
-    for item in following['follows']:  # listing all the followed channels, both live and offline
-        channel, name = item['channel'], item['channel']['name']
-        if name in streams:
-            oc.add(stream_dir(streams[name]))  # live
-        else:
-            if not Prefs['hide_offline']:
-                oc.add(channel_dir(channel, offline=True))  # not live
-    # Sort the items
-    if Prefs['following_order'] == 'view_count':  # viewers desc
-        oc.objects.sort(key=lambda obj: int(obj.tagline.split(',')[-1]), reverse=True)
-    else:  # name asc
-        oc.objects.sort(key=lambda obj: obj.tagline.split(',')[0])
-    if len(oc) >= limit:
-        oc.add(NextPageObject(key=Callback(FollowedChannelsList,
-                                           apiurl=following['_links']['next'], limit=limit),
-                              title=unicode(L('more')), thumb=ICONS['more']))
+    from lib_follows import get_follows
+    get_follows(oc)
     return oc
 
 
