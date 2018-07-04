@@ -1,7 +1,7 @@
 # DumbTools for Plex v1.1 by Cory <babylonstudio@gmail.com>
 
 class DumbKeyboard:
-    clients = ['Plex for iOS', 'Plex Media Player']
+    clients = ['Plex for iOS', 'Plex Media Player', 'Plex Web']
     KEYS = list('abcdefghijklmnopqrstuvwxyz1234567890-=;[]\\\',./')
     SHIFT_KEYS = list('ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+:{}|\"<>?')
 

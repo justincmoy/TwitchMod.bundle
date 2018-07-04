@@ -374,6 +374,9 @@ def SearchMenu(**kwargs):
     """Returns a list of the different search methods"""
     search_routes = {'streams': SearchStreams, 'channels': SearchChannels, 'games': SearchGames}
     oc = ObjectContainer(title2=L('search'))
+
+    Log.Debug('search: Client Product is {}'.format(Client.Product))
+
     for search_type, route in search_routes.iteritems():
         title = '{} {}'.format(L('search'), L(search_type))
         prompt = '{} {}'.format(L('search_prompt'), L(search_type))
